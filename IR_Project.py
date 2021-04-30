@@ -7,6 +7,7 @@ import numpy
 import re
 import pathlib
 import textstat
+from collections import defaultdict
 
 def flesch_reading_ease(text):
     # formula=206.835-1.015(total_words/1)-84.6(syllables/total_words)
@@ -24,6 +25,12 @@ def flesch_kincaid_grade_level(text):
     # print(score)
     return score
 
+def total_characters(text):
+    count=0
+    for char in text:
+        count += 1
+    return count
+
 def preprocessing():
     path = pathlib.Path(__file__).parent.absolute()   
     stemmer = PorterStemmer()  
@@ -36,6 +43,10 @@ def preprocessing():
     print(df['preprocess'])
     df["flesch_reading_ease"]=df["text"].apply(lambda x:flesch_reading_ease(x))
     df["flesch_kincaid_grade_level"]=df["text"].apply(lambda x:flesch_kincaid_grade_level(x))
+    df["syllables"]=df["text"].apply(lambda x:textstat.syllable_count(x))
+    df["words"]=df["text"].apply(lambda x:textstat.lexicon_count(x))
+    df["characters"]=df["text"].apply(lambda x:total_characters(x))
+
     #Export processed CSV
     df.to_csv('processed_data.csv')
 
