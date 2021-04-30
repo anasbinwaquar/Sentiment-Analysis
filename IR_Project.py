@@ -1,13 +1,15 @@
-from nltk.stem import *
-import os
-import math
 import json
-import pandas as pd 
-import numpy
-import re
+import math
+import os
 import pathlib
-import textstat
+import re
 from collections import defaultdict
+
+import numpy
+import pandas as pd
+import textstat
+from nltk.stem import *
+
 
 def flesch_reading_ease(text):
     # formula=206.835-1.015(total_words/1)-84.6(syllables/total_words)
@@ -31,6 +33,12 @@ def total_characters(text):
         count += 1
     return count
 
+def hashtag_count(text):
+    count=0
+    pattern='@[a-zA-Z0-9]'
+    count=len([*re.finditer(pattern, text)])
+    return count
+
 def preprocessing():
     path = pathlib.Path(__file__).parent.absolute()   
     stemmer = PorterStemmer()  
@@ -46,6 +54,7 @@ def preprocessing():
     df["syllables"]=df["text"].apply(lambda x:textstat.syllable_count(x))
     df["words"]=df["text"].apply(lambda x:textstat.lexicon_count(x))
     df["characters"]=df["text"].apply(lambda x:total_characters(x))
+    df["hashtag_count"]=df["text"].apply(lambda x:hashtag_count(x))
 
     #Export processed CSV
     df.to_csv('processed_data.csv')
