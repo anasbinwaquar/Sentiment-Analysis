@@ -64,7 +64,8 @@ def tokenization_with_stemming(text):
     # and stems tweets. Returns a list of stemmed tokens."""
     # text = " ".join(re.split("[^a-zA-Z]*", text.lower())).strip()
     tokens = [stemmer.stem(t) for t in text.split()]
-    print(tokens)
+    # print(tokens)
+
     return tokens
 
 def tokenize(text):
@@ -132,9 +133,9 @@ other_features_names = ["FKRA", "FRE","num_syllables", "avg_syllables_per_sent",
                         "vader compound"]
 
 stopwords = nltk.corpus.stopwords.words("english")
-preprocessing()
+# preprocessing()
 vectorizer = TfidfVectorizer(
-    tokenizer=tokenization_with_stemming,
+    tokenizer=tokenize,
     preprocessor=preprocess,
     ngram_range=(1, 3),
     stop_words=stopwords,
@@ -147,8 +148,8 @@ vectorizer = TfidfVectorizer(
     max_df=0.75
     )
 warnings.simplefilter(action='ignore', category=FutureWarning)
-df=pd.read_csv("processed_data.csv", encoding = "utf-8")
-text=df.text
+df=pd.read_csv("labeled_data.csv")
+text=df.tweet
 tfidf = vectorizer.fit_transform(text).toarray()
 vocab = {v:i for i, v in enumerate(vectorizer.get_feature_names())}
 idf_vals = vectorizer.idf_
@@ -185,7 +186,7 @@ pos = pos_vectorizer.fit_transform(pd.Series(text_tag)).toarray()
 pos_vocab = {v:i for i, v in enumerate(pos_vectorizer.get_feature_names())}
 
 M = np.concatenate([tfidf,pos,features],axis=1)
-print(M.shape)
+# print(M.shape)
 #Finally get a list of variable names
 variables = ['']*len(vocab)
 for k,v in vocab.items():
@@ -197,18 +198,26 @@ for k,v in pos_vocab.items():
 
 feature_names = variables+pos_variables+other_features_names
 X = pd.DataFrame(M)
+print (M)
 y = df['class'].astype(int)
 param_grid = [{}] # Optionally add parameters here
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=0.1)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 pipe = Pipeline(
-        [('select', SelectFromModel(LogisticRegression(class_weight='balanced',
-                                                  penalty="l1", C=0.01))),
-        ('model', LogisticRegression(class_weight='balanced',penalty='l2'))])
+        [('select', SelectFromModel(LogisticRegression(solver='newton-cg',class_weight='balanced',
+                                                  penalty="l2", C=0.01))),
+        ('model', LogisticRegression(solver='newton-cg',class_weight='balanced',penalty='l2'))])
+param_grid = [{}] # Optionally add parameters here
 grid_search = GridSearchCV(pipe, 
                            param_grid,
                            cv=StratifiedKFold(n_splits=5).split(X_train, y_train), 
                            verbose=2)
+# pipe = Pipeline(
+#         [('select', SelectFromModel(LogisticRegression(class_weight='balanced',penalty="l2", C=0.01))),
+#         ('model', LogisticRegression(solver='lbfgs', max_iter=1000))])
+# param_grid = [{}] # Optionally add parameters here
+# grid_search = GridSearchCV(pipe, 
+#                            param_grid,
+#                            cv=StratifiedKFold(n_splits=5).split(X_train, y_train), 
+#                            verbose=2)
 model = grid_search.fit(X_train, y_train)
-y_preds = model.predict(X_test)
-report = classification_report( y_test, y_preds )
-print(report)
+# # print(report)
